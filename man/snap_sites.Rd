@@ -2,76 +2,77 @@
 % Please edit documentation in R/snap_sites.R
 \name{snap_sites}
 \alias{snap_sites}
-\title{A function to snap sites in a shapefile to a flow accumulation grid}
+\title{A function to snap survey sites to a stream raster and a flow accumulation raster}
 \usage{
 snap_sites(
   sites,
+  stream,
   flow_acc,
   max_move,
   out,
   overwrite = FALSE,
   max_memory = 300,
-  use_sp = TRUE,
   ...
 )
 }
 \arguments{
 \item{sites}{File name for a shapefile containing the locations of the survey sites in the current GRASS mapset.}
 
-\item{flow_acc}{File name for a flow accumulation raster in the current GRASS mapset.}
+\item{stream}{Name of a stream raster in the current GRASS mapset. This can either be formatted to have NoData in non-stream cells or 0s in non-stream cells.}
+
+\item{flow_acc}{Name of a flow accumulation raster in the current GRASS mapset.}
 
 \item{max_move}{The maximum distance in cells that any site can be moved to snap it to the flow accumulation grid.}
 
-\item{out}{The output file path.}
+\item{out}{Name of the output in the current GRASS mapset. Note that this function will add a column called \code{snap_dist} to the attribute table of the input sites, which indicates how far each site was snapped.}
 
 \item{overwrite}{Whether the output should be allowed to overwrite any existing files. Defaults to \code{FALSE}.}
 
-\item{max_memory}{Max memory used in memory swap mode (MB). Defaults to \code{300}.}
-
-\item{use_sp}{Logical to use 'sf' or 'stars' classes for vector objects. Defaults to \code{TRUE} to use 'stars' class.}
+\item{max_memory}{Max memory (in) used in memory swap mode. Defaults to \code{300} Mb.}
 
 \item{...}{Additional arguments to \code{r.stream.snap}.}
 }
 \value{
-Nothing. Note that a shapefile of snapped survey sites will be written to the location \code{out} and a shapefile called \code{basename(out)} will be imported into the GRASS mapset.
+Nothing.
 }
 \description{
-This function takes a set of survey site locations and makes sure that they are coincident with the point of highest flow accumulation within a specified distance. This is equivalent to snapping sites to a stream network. Note that this function calls \code{r.stream.snap}, which is a GRASS GIS add-on. It can be installed through the GRASS GUI.
+This function takes a set of survey site locations and snaps them to the highest-value cell within a flow accumulation raster, within a specified distance. Note that this function calls \code{r.stream.snap}, which is a GRASS GIS add-on. It can be installed through the GRASS GUI.
 }
 \examples{
 # Will only run if GRASS is running
+# You should load rdwplus and initialise GRASS via the initGRASS function
 if(check_running()){
-# Load data set
+# Retrieve paths to data sets
 dem <- system.file("extdata", "dem.tif", package = "rdwplus")
-sites <- system.file("extdata", "site.shp", package = "rdwplus")
-stream_shp <- system.file("extdata", "streams.shp", package = "rdwplus")
+lus <- system.file("extdata", "landuse.tif", package = "rdwplus")
+sts <- system.file("extdata", "site.shp", package = "rdwplus")
+stm <- system.file("extdata", "streams.shp", package = "rdwplus")
 
-# Set environment parameters and import data to GRASS
+# Set environment 
 set_envir(dem)
-raster_to_mapset(rasters = c(dem), as_integer = c(FALSE))
-vector_to_mapset(vectors = c(sites, stream_shp))
 
-# Create binary stream
-out_name <- paste0(tempdir(), "/streams_rast.tif")
-rasterise_stream("streams", out_name, overwrite = TRUE)
-reclassify_streams("streams_rast.tif", "streams_binary.tif", 
-out_type = "binary", overwrite = TRUE)
+# Get other data sets (stream layer, sites, land use, etc.)
+raster_to_mapset(lus)
+vector_to_mapset(c(stm, sts))
 
-# Burn dem 
-burn_in(dem = "dem.tif", stream = "streams_binary.tif",
- out = "dem_burn.tif", burn = 10, overwrite = TRUE)
+# Reclassify streams
+out_stream <- paste0(tempdir(), "/streams.tif")
+rasterise_stream("streams", out_stream, TRUE)
+reclassify_streams("streams.tif", "streams01.tif", overwrite = TRUE)
 
-# Fill sinks
-fill_sinks(dem = "dem_burn.tif", out = "dem_fill.tif", size = 1, overwrite = TRUE)
+# Burn in the streams to the DEM
+burn_in("dem.tif", "streams01.tif", "burndem.tif", overwrite = TRUE)
 
-# Derive flow accumulation and direction grids
-derive_flow(dem = "dem_fill.tif", flow_dir = "fdir.tif", 
-flow_acc = "facc.tif", overwrite = TRUE)
+# Fill dem
+fill_sinks("burndem.tif", "filldem.tif", "fd1.tif", "sinks.tif", overwrite = TRUE)
 
-# Snap sites to pour points (based on flow accumulation)
-out_snap <- paste0(tempdir(), "/snapsite.shp")
-snap_sites(sites = "site", flow_acc = "facc.tif", max_move = 2, 
-out = out_snap, overwrite = TRUE)
+# Derive flow direction and accumulation grids
+derive_flow("dem.tif", "fd.tif", "fa.tif", overwrite = T)
 
+# Derive a new stream raster from the FA grid
+derive_streams("dem.tif", "fa.tif", "new_stm.tif", "new_stm", min_acc = 200, overwrite = T)
+
+# Snap sites to streams and flow accumulation
+snap_sites("site", "new_stm.tif", "fa.tif", 2, "snapsite", T)
 }
 }
