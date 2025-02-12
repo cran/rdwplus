@@ -1,4 +1,4 @@
-bcff922450b616165cf41b0bac7c99a3 *DESCRIPTION
+d5e72fd3c03cbb0b6115ef59854d8b19 *DESCRIPTION
 f15cae85b1da52ff71f8dd8c1756e448 *NAMESPACE
 eb96be38743a53d29633f163482eeed5 *R/binary.R
 f9af7ba643882c4cf6138a423582fc97 *R/burn_in.R
@@ -75,7 +75,7 @@ ed0e320808bcca6cacb106cf73efe783 *man/install_extensions.Rd
 ea5a1c4b8437e6de6dca8fcc34b13766 *man/rast_calc.Rd
 f6385a60c2a73073dfb369984b41a8fb *man/raster_to_mapset.Rd
 26cd6e6fdb4646618295bc36562ed905 *man/rasterise_stream.Rd
-d22650cd882582b071bf22d5e0effd73 *man/rdwplus-package.Rd
+25c3295df636d12976cb6e2b03eab400 *man/rdwplus-package.Rd
 d6b66fa61577c9c9fba9d1ff37d0631b *man/reclassify_streams.Rd
 27a2d3b91f779ae9c76926a9bf34ce80 *man/report_mapset.Rd
 1f33908b0c287df34e0e2e998b8169cb *man/retrieve_raster.Rd
